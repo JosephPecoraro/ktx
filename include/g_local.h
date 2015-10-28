@@ -683,6 +683,7 @@ void 	vote_check_all ();
 #define	VOTE_FOFS(x) ((int)&(((vote_t *)0)->x))
 
 #define OV_BREAK ( VOTE_FOFS ( brk ) )
+#define OV_CONCEDE ( VOTE_FOFS ( concede ) )
 #define OV_ELECT ( VOTE_FOFS ( elect ) )
 #define OV_PICKUP ( VOTE_FOFS ( pickup ) )
 #define OV_RPICKUP ( VOTE_FOFS ( rpickup ) )

@@ -133,6 +133,37 @@ int get_votes_by_value( int fofs, int value )
 	return votes;
 }
 
+int get_remaining_concede_votes_for_player( gedict_t *player )
+{
+	float needed_percent = 51;
+	float team_player_count = 0;
+	float team_concede_count = 0;
+	int votes_required = 1;
+	gedict_t *p;
+	char *team;
+
+	if ( is_adm( player ) || isDuel() ) {
+		team_player_count = 1;
+		team_concede_count = self->v.concede ? 1 : 0;
+	} else {
+		// Count the team members and the team members with votes.
+		team = getteam( player );
+		for ( p = world; (p = find_plr( p )); ) {
+			if ( streq( team, getteam( p ) ) ) {
+				team_player_count++;
+				if ( p->v.concede )
+					team_concede_count++;
+			}
+		}
+	}
+    
+	needed_percent = cvar("k_vp_concede");
+	needed_percent = bound(0.51, bound(51, needed_percent, 100)/100, 1); // bound between 50% to 100%
+	votes_required = max(1, ceil( needed_percent * team_player_count ));
+
+	return max(0, votes_required - team_concede_count);
+}
+
 int get_votes_req( int fofs, qbool diff )
 {
 	float percent = 51;
@@ -172,6 +203,7 @@ int get_votes_req( int fofs, qbool diff )
 		case OV_TEAMOVERLAY: percent = cvar("k_vp_teamoverlay"); break;
 		case OV_COOP:    percent = cvar("k_vp_coop"); break;
 		case OV_ANTILAG: percent = cvar("k_vp_antilag"); break;
+		case OV_CONCEDE: break; // Should not be reached, use get_remaining_concede_votes_for_player.
 	}
 
 	percent = bound(0.51, bound(51, percent, 100)/100, 1); // calc and bound percentage between 50% to 100%
@@ -342,6 +374,30 @@ void vote_check_break ()
 
 		EndMatch( 1 );
 
+		return;
+	}
+}
+
+void vote_check_concede ()
+{
+	if ( !match_in_progress || intermission_running || match_over )
+		return;
+	
+	if ( self->ct != ctPlayer )
+		return;
+	
+	if ( !get_remaining_concede_votes_for_player(self) ) {
+		vote_clear( OV_CONCEDE );
+		
+		G_bprint(2, "%s\n", redtext("Match stopped by majority vote"));
+		
+		if ( isDuel() )
+			G_bprint(2, "%s %s %s\n", redtext("Player"), self->s.v.netname, redtext("conceded"));
+		else
+			G_bprint(2, "%s %s %s\n", redtext("Team"), getteam( self ), redtext("conceded"));
+		
+		EndMatch( 0 );
+		
 		return;
 	}
 }

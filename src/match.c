@@ -3008,3 +3008,59 @@ void PlayerBreak ()
 	vote_check_break ();
 }
 
+void PlayerConcede ()
+{
+	int votes, remaining_votes_needed;
+	gedict_t *p;
+	
+	if ( isRACE() )
+	{
+		r_changestatus( 2 ); // race_break
+		return;
+	}
+	
+	if( !match_in_progress )
+	{
+		G_sprint(self, 2, "You must be in a match to do this\n" );
+		return;
+	}
+	
+	if( match_in_progress == 1 ) // Countdown
+	{
+		PlayerBreak(); // /break
+		return;
+	}
+	
+	if( self->v.concede )
+	{
+		self->v.concede = 0;
+		
+		if ( isDuel() ) {
+		    G_bprint(2, "%s %s %s concede %s%s\n", self->s.v.netname,
+					redtext("withdraws"), redtext(g_his(self)), redtext("vote"),
+					remaining_votes_needed ? va(" (%d)", remaining_votes_needed) : "");
+		} else {
+			remaining_votes_needed = get_remaining_concede_votes_for_player(self);
+			G_bprint(2, "%s %s %s concede %s %s%s\n", self->s.v.netname,
+					redtext("withdraws"), redtext(g_his(self)), redtext("vote for team"), getteam(self),
+					remaining_votes_needed ? va(" (%d)", remaining_votes_needed) : "");
+		}
+		
+		return;
+	}
+	
+	self->v.concede = 1;
+	
+	if ( isDuel() ) {
+		remaining_votes_needed = get_remaining_concede_votes_for_player(self);
+		G_bprint(2, "%s %s concede%s\n", self->s.v.netname,
+			redtext("votes to"), remaining_votes_needed ? va(" (%d)", remaining_votes_needed) : "");
+	} else {
+		remaining_votes_needed = get_remaining_concede_votes_for_player(self);
+		G_bprint(2, "%s %s %s %s concede%s\n", self->s.v.netname,
+			redtext("votes for team"), getteam(self), redtext("to"),
+			remaining_votes_needed ? va(" (%d)", remaining_votes_needed) : "");        
+	}
+	
+	vote_check_concede ();
+}

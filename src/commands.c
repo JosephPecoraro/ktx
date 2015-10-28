@@ -29,6 +29,7 @@ float CountRPlayers();
 float CountTeams();
 void PlayerReady ();
 void PlayerBreak ();
+void PlayerConcede ();
 void ReqAdmin ();
 void AdminForceStart ();
 void AdminForceBreak ();
@@ -264,6 +265,7 @@ const char CD_NODESC[] = "no desc";
 #define CD_OPTIONS    "match control commands"
 #define CD_READY      "when you feel ready"
 #define CD_BREAK      "unready / vote matchend"
+#define CD_CONCEDE    "concede / vote forfeit"
 #define CD_STATUS     "show server settings"
 #define CD_STATUS2    "more server settings"
 #define CD_WHO        "player teamlist"
@@ -572,6 +574,7 @@ cmd_t cmds[] = {
 	{ "options",     ShowOpts,                  0    , CF_PLAYER, CD_OPTIONS },
 	{ "ready",       PlayerReady,               0    , CF_BOTH | CF_MATCHLESS, CD_READY },
 	{ "break",       PlayerBreak,               0    , CF_BOTH | CF_MATCHLESS, CD_BREAK },
+	{ "concede",     PlayerConcede,             0    , CF_BOTH | CF_MATCHLESS, CD_CONCEDE },
 	{ "status",      ModStatus,                 0    , CF_BOTH | CF_MATCHLESS, CD_STATUS },
 	{ "status2",     ModStatus2,                0    , CF_BOTH | CF_MATCHLESS, CD_STATUS2 },
 	{ "who",         PlayerStatus,              0    , CF_BOTH, CD_WHO },
@@ -1658,6 +1661,23 @@ void ModStatusVote()
 		for( p = world; (p = find_client( p )); )
 			if ( p->v.brk )
 				G_sprint(self, 2, " %s\n", p->s.v.netname);
+	}
+
+	if( match_in_progress == 2 )
+	if ( (votes = get_votes( OV_CONCEDE )) ) {
+		voted = true;
+
+		G_sprint(self, 2, "\x90%d\x91 vote%s for %s:\n", votes,
+			count_s(votes), "conceding");
+
+		for( p = world; (p = find_client( p )); ) {
+			if ( p->v.concede ) {
+			    if ( isDuel() )
+                    G_sprint(self, 2, " %s\n", p->s.v.netname);
+                else
+                    G_sprint(self, 2, " %s [%s]\n", p->s.v.netname, getteam( p ));
+			}
+        }
 	}
 
 	if ( !match_in_progress )

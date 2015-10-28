@@ -195,6 +195,7 @@ typedef struct vote_s {
 	int nospecs;
 	int coop;
 	int antilag;
+	int concede;
 
 	electType_t elect_type; // election type
 	float elect_block_till;	// block election for this time
