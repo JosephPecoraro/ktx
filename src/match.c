@@ -28,6 +28,7 @@ void OnePlayerMidairStats();
 void OnePlayerInstagibStats();
 void StartLogs();
 void StopLogs();
+void ClearDemoMarkers();
 
 extern int g_matchstarttime;
 
@@ -861,6 +862,25 @@ void FunStats()
     G_bprint(2, "\nŸ\n");
 }
 
+extern demo_marker_t demo_markers[];
+extern int demo_marker_index;
+
+void ListDemoMarkers()
+{
+	if ( !demo_marker_index )
+		return;
+
+    G_bprint(2, "%s:\nŸ\n", redtext("Demo markers"));
+
+	for (int i = 0; i < demo_marker_index; ++i)
+	{
+		int total = (int)(demo_markers[i].time - match_start_time);
+		G_bprint( 2, "%s: %d:%02d \220%s\221\n", redtext("Time"), (total / 60), (total % 60), demo_markers[i].markername);
+	}
+
+	G_bprint(2, "Ÿ\n");
+}
+
 void TopMidairStats ( )
 {
   gedict_t  *p;
@@ -1471,10 +1491,12 @@ void EndMatch ( float skip_log )
 		}
 
 		if( isTeam() || isCTF() )
-				TeamsStats (); // print basic info like frags for each team
+			TeamsStats (); // print basic info like frags for each team
 
 		if ( (p = find( world, FOFCLSN, "ghost" )) ) // show legend :)
 			G_bprint(2, "\n\x83 - %s player\n\n", redtext("disconnected"));
+
+		ListDemoMarkers();
 
 		lastscore_add(); // save game result somewhere, so we can show it later
 
@@ -1985,6 +2007,8 @@ void StartMatch ()
 	SM_PrepareCA();
 
 	SM_on_MatchStart();
+
+	ClearDemoMarkers();
 
 	StartLogs();
 
