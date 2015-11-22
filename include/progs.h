@@ -173,6 +173,10 @@ typedef struct player_stats_s {
 	int i_maxmultigibs;
 	int i_rings;
 
+	// fun stats
+	int ra_spawns;
+	float last_ra_time;
+	float last_kill_time;
 } player_stats_t;
 
 

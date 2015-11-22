@@ -391,6 +391,17 @@ void armor_touch()
 	if ( armor )
 		(*armor)++;
 
+    // Record fun red armor stats.
+    if ( bit == IT_ARMOR3 )
+    {
+        other->ps.last_ra_time = g_globalvars.time;
+
+        if (other->spawn_time + 1 > g_globalvars.time)
+        {
+            other->ps.ra_spawns++;
+        }
+    }
+
 	real_value = other->s.v.armorvalue;
 
 	other->s.v.armortype = type;

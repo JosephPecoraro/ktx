@@ -3394,6 +3394,8 @@ void StatsHandler(gedict_t *targ, gedict_t *attacker)
 				attacker->ps.wpn[wpRL].ekills++;
 			if ( (items & IT_LIGHTNING) )
 				attacker->ps.wpn[wpLG].ekills++;
+
+			attacker->ps.last_kill_time = g_globalvars.time;
 		}
 	}
 }

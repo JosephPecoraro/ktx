@@ -388,8 +388,8 @@ void TeamsStats ( )
 		G_bprint(2, "Ÿ\n");
 }
 
-float maxfrags, maxdeaths, maxfriend, maxeffi, maxcaps, maxdefends;
-int maxspree, maxspree_q;
+float maxfrags, maxdeaths, maxfriend, maxeffi, maxcaps, maxdefends, lastratime, lastkilltime;
+int maxspree, maxspree_q, maxaxekills, maxraspawns;
 
 void OnePlayerStats(gedict_t *p, int tp)
 {
@@ -553,6 +553,11 @@ void OnePlayerStats(gedict_t *p, int tp)
 	maxdefends = max(p->ps.f_defends, maxdefends);
 	maxspree   = max(p->ps.spree_max, maxspree);
 	maxspree_q = max(p->ps.spree_max_q, maxspree_q);
+
+	maxaxekills = max(p->ps.wpn[wpAXE].ekills, maxaxekills);
+    maxraspawns = max(p->ps.ra_spawns, maxraspawns);
+    lastratime  = max(p->ps.last_ra_time, lastratime);
+	lastkilltime = max(p->ps.last_kill_time, lastkilltime);
 }
 
 // Players statistics printout here
@@ -572,8 +577,8 @@ void PlayersStats ()
 	// Probably low enough for a start value :)
 	maxfrags = -999999;
 
-	maxeffi = maxfriend = maxdeaths = maxcaps = maxdefends = 0;
-	maxspree = maxspree_q = 0;
+	maxeffi = maxfriend = maxdeaths = maxcaps = maxdefends = lastratime = lastkilltime = 0;
+	maxspree = maxspree_q = maxaxekills = maxraspawns = 0;
 
 	tp = isTeam() || isCTF();
 
@@ -779,6 +784,81 @@ void TopStats ( )
 	}
 
 	G_bprint(2, "\nŸ\n");
+}
+
+void FunStats()
+{
+	gedict_t	*p;
+	float		f1;
+	int			from;
+
+    // No fun statistics to display.
+    if ( !maxaxekills && !maxraspawns && !lastratime && !lastkilltime )
+        return;
+
+    G_bprint(2, "%s:\nŸ\n", redtext("Fun statistics"));
+
+    if ( maxaxekills )
+    {
+		G_bprint( 2, "Top Axe Killer: ");
+		from = f1 = 0;
+		p = find_plrghst( world, &from );
+		while( p ) {
+			if ( p->ps.wpn[wpAXE].ekills == maxaxekills ) {
+				G_bprint(2, "%s%s%s \220%d\221\n", (f1 ? "             " : ""),
+					( isghost( p ) ? "\x83" : "" ), getname( p ), maxaxekills );
+				f1 = 1;
+			}
+			p = find_plrghst( p, &from );
+		}
+    }
+
+    if ( maxraspawns )
+    {
+		G_bprint( 2, "Top RA Spawner: ");
+		from = f1 = 0;
+		p = find_plrghst( world, &from );
+		while( p ) {
+			if ( p->ps.ra_spawns == maxraspawns ) {
+				G_bprint(2, "%s%s%s \220%d\221\n", (f1 ? "             " : ""),
+					( isghost( p ) ? "\x83" : "" ), getname( p ), maxraspawns );
+				f1 = 1;
+			}
+			p = find_plrghst( p, &from );
+		}
+    }
+
+    if ( lastratime )
+    {
+		G_bprint( 2, "       Last RA: ");
+		from = f1 = 0;
+		p = find_plrghst( world, &from );
+		while( p ) {
+			if ( p->ps.last_ra_time == lastratime ) {
+				G_bprint(2, "%s%s%s\n", (f1 ? "             " : ""),
+					( isghost( p ) ? "\x83" : "" ), getname( p ) );
+				f1 = 1;
+			}
+			p = find_plrghst( p, &from );
+		}
+    }
+
+	if ( lastkilltime )
+	{
+		G_bprint( 2, "     Last Kill: ");
+		from = f1 = 0;
+		p = find_plrghst( world, &from );
+		while( p ) {
+			if ( p->ps.last_kill_time == lastkilltime ) {
+				G_bprint(2, "%s%s%s\n", (f1 ? "             " : ""),
+					( isghost( p ) ? "\x83" : "" ), getname( p ) );
+				f1 = 1;
+			}
+			p = find_plrghst( p, &from );
+		}		
+	}
+
+    G_bprint(2, "\nŸ\n");
 }
 
 void TopMidairStats ( )
@@ -1381,6 +1461,8 @@ void EndMatch ( float skip_log )
 
         	if( !isDuel() ) // top stats only in non duel modes
 				TopStats (); // print top frags tkills deaths...
+
+            FunStats ();
 		}
 		else
 		{
