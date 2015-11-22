@@ -1462,7 +1462,8 @@ void EndMatch ( float skip_log )
         	if( !isDuel() ) // top stats only in non duel modes
 				TopStats (); // print top frags tkills deaths...
 
-            FunStats ();
+			if ( cvar("k_funstats") )
+				FunStats (); // print fun end game stats
 		}
 		else
 		{

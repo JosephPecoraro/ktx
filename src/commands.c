@@ -200,6 +200,7 @@ void ToggleExclusive();
 void ToggleNewCoopNm();
 void ToggleVwep();
 void TogglePause();
+void ToggleFunStats();
 void ToggleArena();
 
 void Spawn666Time();
@@ -507,6 +508,7 @@ const char CD_NODESC[] = "no desc";
 #define CD_EXCLUSIVE    "toggle exclusive mode"
 #define CD_VWEP         "toggle vweps"
 #define CD_PAUSE        "toggle pause"
+#define CD_FUNSTATS     "toggle fun end game stats"
 // { RACE
 #define CD_RACE       	"toggle race mode"
 #define CD_R_SSET       "set race start checkpoint"
@@ -836,6 +838,7 @@ cmd_t cmds[] = {
 	{ "exclusive",   ToggleExclusive,           0    , CF_BOTH_ADMIN, CD_EXCLUSIVE },
 	{ "vwep",        ToggleVwep,                0    , CF_PLAYER | CF_SPC_ADMIN, CD_VWEP },
 	{ "pause",       TogglePause,               0    , CF_PLAYER | CF_MATCHLESS | CF_SPC_ADMIN, CD_PAUSE },
+	{ "funstats",    ToggleFunStats,            0    , CF_PLAYER | CF_SPC_ADMIN, CD_FUNSTATS },
 // { RACE
 	{ "race_ready",					DEF(r_changestatus),			1,	CF_PLAYER,								CD_RREADY },
 	{ "race_break",					DEF(r_changestatus),			2,	CF_PLAYER,								CD_RBREAK },
@@ -2926,8 +2929,8 @@ const char common_um_init[] =
 	"k_fp_spec 1\n"				// floodprot for specs
 
 	"dmm4_invinc_time \"\"\n"	// reset to default
-
 	"k_noitems \"\"\n"			// reset to default
+	"k_funstats \"\"\n"			// reset to default
 
 //	"localinfo k_new_mode 0\n"	// UNKNOWN ktpro
 //	"localinfo k_fast_mode 0\n	// UNKNOWN ktpro
@@ -6015,6 +6018,14 @@ void TogglePause ()
 		G_bprint(2, "%s paused the game\n", self->s.v.netname);
 		trap_setpause (1);
 	}
+}
+
+void ToggleFunStats()
+{
+	if ( match_in_progress )
+		return;
+
+	cvar_toggle_msg( self, "k_funstats", redtext("fun stats") );
 }
 
 void ToggleArena()

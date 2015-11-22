@@ -655,6 +655,8 @@ void FirstFrame	( )
 
 	RegisterCvar("k_noitems");
 
+	RegisterCvar("k_funstats");
+
 	RegisterCvar("k_random_maplist"); // select random map from k_ml_XXX variables.
 
 	RegisterCvar("k_mode");
