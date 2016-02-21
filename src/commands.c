@@ -127,6 +127,7 @@ void handicap ();
 void noweapon ();
 void tracklist ();
 void fpslist ();
+void toss ();
 void krnd ();
 void agree_on_map ();
 
@@ -459,6 +460,7 @@ const char CD_NODESC[] = "no desc";
 #define CD_NEXT_BEST    "set pov to next best player"
 #define CD_NEXT_POW     "set pov to next powerup"
 #define CD_LASTSCORES   "print last games scores"
+#define CD_TOSS         "toss map from a pool"
 #define CD_RND          "select random value"
 #define CD_AGREE        "agree on last map vote"
 #define CD_POS_SHOW     "info about saved position"
@@ -780,6 +782,7 @@ cmd_t cmds[] = {
 	{ "next_best",   next_best,                 0    , CF_SPECTATOR | CF_MATCHLESS, CD_NEXT_BEST },
 	{ "next_pow",    next_pow,                  0    , CF_SPECTATOR | CF_MATCHLESS, CD_NEXT_POW },
 	{ "lastscores",  lastscores,                0    , CF_BOTH | CF_MATCHLESS | CF_PARAMS, CD_LASTSCORES },
+	{ "toss",        toss,                      0    , CF_BOTH | CF_PARAMS, CD_TOSS },
 	{ "rnd",         krnd,                      0    , CF_BOTH | CF_PARAMS, CD_RND },
 	{ "agree",       agree_on_map,              0    , CF_PLAYER | CF_MATCHLESS, CD_AGREE },
 	{ "pos_show",    Pos_Show,                  0    , CF_BOTH | CF_PARAMS, CD_POS_SHOW },
@@ -4709,6 +4712,165 @@ void krnd ()
 	trap_CmdArgv( i_rnd(1, argc-1) , arg_x, sizeof( arg_x ) );
 
 	G_bprint(2, "selected: \x90%s\x91\n", arg_x);
+}
+
+// Toss pickers and maps.
+char toss_pool[10][100];
+int toss_maxPoolSize = 10;
+int toss_currentPoolSize = 0;
+gedict_t *toss_picker1;
+gedict_t *toss_picker2;
+gedict_t *toss_currentPicker;
+
+static void printTossNoMapPool()
+{
+	G_sprint(self, PRINT_HIGH, "%s\n", redtext("No toss map pool."));	
+}
+
+static void printTossMapPoolAndPicker()
+{
+	G_bprint(PRINT_HIGH, "%s %s\n", redtext("Currently Tossing:"), getname(toss_currentPicker));
+	G_bprint(PRINT_HIGH, "%s", redtext("Map Pool: \x90"));
+	for (int i = 0; i < toss_currentPoolSize; ++i) {
+		if (i) G_bprint(PRINT_HIGH, ", ", toss_pool[i]);
+		G_bprint(PRINT_HIGH, "%s", toss_pool[i]);
+	}
+	G_bprint(PRINT_HIGH, "\x91\n");
+}
+
+static void printTossMapWinner()
+{
+	G_bprint(PRINT_HIGH, "%s \x90%s\x91\n", redtext("Map Selected:"), toss_pool[0]);
+	toss_currentPoolSize = 0;
+}
+
+static void tossMapAtIndex(int index)
+{
+	int i;
+	for (i = index; i < toss_currentPoolSize; ++i)
+		strlcpy(toss_pool[i], toss_pool[i + 1], sizeof(toss_pool[i]));
+	toss_currentPoolSize--;
+}
+
+static qbool tossSetPickers()
+{
+	gedict_t *p;
+	toss_picker1 = NULL;
+	toss_picker2 = NULL;
+	toss_currentPicker = NULL;
+
+	for (p = world; (p = find_plr(p));) {
+		if (!toss_picker1) {
+			toss_picker1 = p;
+			continue;
+		}
+		if (!toss_picker2) {
+			toss_picker2 = p;
+			continue;
+		}
+
+		G_sprint(self, PRINT_HIGH, "%s\n", redtext("Too many players to set toss pickers. Need 2."));
+		return false;
+	}
+
+	if (!toss_picker1 || !toss_picker2) {
+		G_sprint(self, PRINT_HIGH, "%s\n", redtext("Too few players to set toss pickers. Need 2."));
+		return false;
+	}
+
+	toss_currentPicker = g_random() < 0.5 ? toss_picker1 : toss_picker2;
+	return true;
+}
+
+void tossTogglePicker()
+{
+	toss_currentPicker = toss_currentPicker == toss_picker1 ? toss_picker2 : toss_picker1;
+}
+
+void TossClear()
+{
+	if (!toss_currentPoolSize)
+		return;
+
+	toss_currentPoolSize = 0;
+	toss_picker1 = NULL;
+	toss_picker2 = NULL;
+	toss_currentPicker = NULL;
+
+	G_bprint(PRINT_HIGH, "%s\n", redtext("Tossing cleared"));
+}
+
+void toss()
+{
+	if (match_in_progress)
+		return;
+
+	int i;
+	int mapArgCount = trap_CmdArgc() - 1;
+
+	// No args. Print picking details.
+	// /toss
+	if (mapArgCount == 0) {
+		if (!toss_currentPoolSize) {
+			printTossNoMapPool();
+			return;
+		}
+		printTossMapPoolAndPicker();
+		return;
+	}
+
+	// Multiple arguments. Set pickers. Set map pool.
+	// /toss <map1> <map2> <map3>
+	if (mapArgCount > 1) {
+		if (!tossSetPickers())
+			return;
+		toss_currentPoolSize = min(mapArgCount, toss_maxPoolSize);
+		G_bprint(PRINT_HIGH, "%s %s\n", getname(self), redtext("setup a toss map pool"));
+		for (i = 0; i < toss_currentPoolSize; ++i)
+			trap_CmdArgv(i + 1, toss_pool[i], sizeof(toss_pool[i]));
+		printTossMapPoolAndPicker();
+		return;
+	}
+
+	if (!toss_currentPoolSize) {
+		printTossNoMapPool();
+		return;
+	}
+
+	if (self != toss_currentPicker) {
+		G_sprint(self, PRINT_HIGH, "%s\n", redtext("You are not the picker."));
+		return;
+	}
+
+	// Single argument.
+	//   - "pass" => pass to the other player
+	//   - "map" => remove from pool
+	char map[100];
+	trap_CmdArgv(1, map, sizeof(map));
+	if (streq(map, "pass")) {
+		G_bprint(PRINT_HIGH, "%s %s\n", getname(toss_currentPicker), redtext("passed"));
+		tossTogglePicker();
+		printTossMapPoolAndPicker();
+		return;
+	}
+
+	// Map found. Toss it.
+	for (i = 0; i < toss_currentPoolSize; ++i) {
+		if (streq(map, toss_pool[i])) {
+			G_bprint(PRINT_HIGH, "%s %s %s\n", getname(toss_currentPicker), redtext("tossed"), map);
+			tossMapAtIndex(i);
+			if (toss_currentPoolSize == 1) {
+				printTossMapWinner();
+				return;
+			}
+			tossTogglePicker();
+			printTossMapPoolAndPicker();
+			return;
+		}
+	}
+
+	// Map not found. Warn. (player only).
+	G_sprint(self, PRINT_HIGH, "%s %s %s\n", redtext("Map"), map, redtext("not in pool. Toss again."));
 }
 
 void agree_on_map ( )

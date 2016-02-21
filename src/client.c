@@ -41,6 +41,7 @@ void IdlebotCheck();
 void CheckAll();
 void PlayerStats();
 void ExitCaptain();
+void TossClear();
 void CheckFinishCaptain();
 void MakeMOTD();
 void ImpulseCommands();
@@ -2137,6 +2138,8 @@ void ClientDisconnect()
 
 	if( k_captains == 2 )
 		CheckFinishCaptain();
+
+	TossClear();
 
 	if( cvar( "k_idletime" ) > 0 )
 		IdlebotCheck();
