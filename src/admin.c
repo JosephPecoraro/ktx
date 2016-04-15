@@ -491,6 +491,8 @@ void ReadyThink ()
 
         G_bprint(2, "%s interrupts countdown\n", p2->s.v.netname );
 
+		localcmd("serverinfo status Standby\n");
+
         ent_remove ( self );
 
         return;
@@ -502,6 +504,8 @@ void ReadyThink ()
         k_force = 0;
 
         G_bprint(2, "Forcestart canceled\n");
+
+		localcmd("serverinfo status Standby\n");
 
         ent_remove ( self );
 
@@ -574,6 +578,11 @@ void AdminForceStart ()
     if( k_attendees )
     {
         G_bprint(2, "%s forces matchstart!\n", self->s.v.netname);
+
+		// This is not really countdown, but standby -> countdown causes ezquake
+		// to unminimize without any bad side effects, and if this forcestart
+		// succeeds we will just enter the real countdown.
+		localcmd("serverinfo status Countdown\n");
 
         k_force = 1;
 
