@@ -456,10 +456,11 @@ void StatsToFile(void)
 
 float maxfrags, maxdeaths, maxfriend, maxeffi, maxcaps, maxdefends, maxsgeffi, maxlastra;
 int maxspree, maxspree_q, maxdmgg, maxdmgtd, maxrlkills;
+int seen_zero_deaths, seen_discharge_kills, seen_discharge_survivals, seen_quad_deaths_to_discharge, seen_killed_team_ring, seen_drowned_deaths, seen_squish_kills, seen_stomp_kills, seen_telefrag_deaths, seen_telefrag_kills, seen_axe_kills, seen_multiple_megas, seen_all_powerups;
 
 void OnePlayerStats(gedict_t *p, int tp)
 {
-	float	dmg_g, dmg_t, dmg_team, dmg_self, dmg_eweapon, dmg_g_rl, dmg_td;
+	float	dmg_g, dmg_t, dmg_team, dmg_self, dmg_eweapon, dmg_g_rl, dmg_td, dmg_ratio;
 	int   ra, ya, ga;
 	int   mh, d_rl, k_rl, t_rl;
 	int   quad, pent, ring;
@@ -473,7 +474,8 @@ void OnePlayerStats(gedict_t *p, int tp)
 	dmg_team = p->ps.dmg_team;
 	dmg_self = p->ps.dmg_self;
 	dmg_eweapon = p->ps.dmg_eweapon;
-    dmg_td = p->deaths <= 0 ? 99999 : (int)(p->ps.dmg_t / p->deaths);
+	dmg_td = p->deaths <= 0 ? 99999 : (int)(p->ps.dmg_t / p->deaths);
+	dmg_ratio = dmg_g / dmg_t;
 	ra    = p->ps.itm[itRA].tooks;
 	ya    = p->ps.itm[itYA].tooks;
 	ga    = p->ps.itm[itGA].tooks;
@@ -493,6 +495,24 @@ void OnePlayerStats(gedict_t *p, int tp)
 	a_sg  = p->ps.wpn[wpSG].attacks;
 	h_ssg = p->ps.wpn[wpSSG].hits;
 	a_ssg = p->ps.wpn[wpSSG].attacks;
+
+	float dmg_wep_axe = p->ps.wpn[wpAXE].edamage;
+	float dmg_wep_sg  = p->ps.wpn[wpSG].edamage;
+	float dmg_wep_ssg = p->ps.wpn[wpSSG].edamage;
+	float dmg_wep_ng  = p->ps.wpn[wpNG].edamage;
+	float dmg_wep_sng = p->ps.wpn[wpSNG].edamage;
+	float dmg_wep_gl  = p->ps.wpn[wpGL].edamage;
+	float dmg_wep_rl  = p->ps.wpn[wpRL].edamage;
+	float dmg_wep_lg  = p->ps.wpn[wpLG].edamage;
+
+	int attacks_wep_axe = p->ps.wpn[wpAXE].attacks;
+	int attacks_wep_sg  = p->ps.wpn[wpSG].attacks / 6; // sg bullets.
+	int attacks_wep_ssg = p->ps.wpn[wpSSG].attacks / (k_yawnmode ? 21 : 14); // ssg bullets.
+	int attacks_wep_ng  = p->ps.wpn[wpNG].attacks;
+	int attacks_wep_sng = p->ps.wpn[wpSNG].attacks;
+	int attacks_wep_gl  = p->ps.wpn[wpGL].attacks;
+	int attacks_wep_rl  = p->ps.wpn[wpRL].attacks;
+	int attacks_wep_lg  = p->ps.wpn[wpLG].attacks;
 
 	e_sg  = 100.0 * h_sg  / max(1, a_sg);
 	e_ssg = 100.0 * h_ssg / max(1, a_ssg);
@@ -527,12 +547,36 @@ void OnePlayerStats(gedict_t *p, int tp)
 	// qqshka - force show this always
 	//	if ( !tp || cvar( "tp_players_stats" ) ) {
 	// weapons
-	G_bprint(2, "%s:%s%s%s%s%s\n", redtext("Wp"),
-		(a_lg  ? va(" %s%.1f%% (%d/%d)", redtext("lg"), e_lg, (int)h_lg, (int)a_lg) : ""),
-		(ph_rl ? va(" %s%.1f%%", redtext("rl"), ph_rl) : ""),
-		(ph_gl ? va(" %s%.1f%%", redtext("gl"), ph_gl) : ""),
-		(e_sg  ? va(" %s%.1f%%", redtext("sg"), e_sg) : ""),
-		(e_ssg ? va(" %s%.1f%%", redtext("ssg"), e_ssg) : ""));
+	G_bprint(2, "%s:%s%s%s%s%s\n", redtext(" Wp Effi"),
+		(a_lg  ? va(" %s:%.1f%% (%d/%d)", redtext("lg"), e_lg, (int)h_lg, (int)a_lg) : ""),
+		(ph_rl ? va(" %s:%.1f%%", redtext("rl"), ph_rl) : ""),
+		(ph_gl ? va(" %s:%.1f%%", redtext("gl"), ph_gl) : ""),
+		(e_sg  ? va(" %s:%.1f%%", redtext("sg"), e_sg) : ""),
+		(e_ssg ? va(" %s:%.1f%%", redtext("ssg"), e_ssg) : ""));
+
+	// dmg per weapon
+	G_bprint(2, "%s:%s%s%s%s%s%s%s%s\n", redtext("     Dmg"),
+		(attacks_wep_lg  ? va(" %s:%.0f", redtext("lg") , dmg_wep_lg ) : ""),
+		(attacks_wep_rl  ? va(" %s:%.0f", redtext("rl") , dmg_wep_rl ) : ""),
+		(attacks_wep_gl  ? va(" %s:%.0f", redtext("gl") , dmg_wep_gl ) : ""),
+		(attacks_wep_sg  ? va(" %s:%.0f", redtext("sg") , dmg_wep_sg ) : ""),
+		(attacks_wep_ssg ? va(" %s:%.0f", redtext("ssg"), dmg_wep_ssg) : ""),
+		(attacks_wep_sng ? va(" %s:%.0f", redtext("sng"), dmg_wep_sng) : ""),
+		(attacks_wep_ng  ? va(" %s:%.0f", redtext("ng") , dmg_wep_ng ) : ""),
+		(attacks_wep_axe ? va(" %s:%.0f", redtext("axe"), dmg_wep_axe) : "") 
+	);
+
+	// shots per weapon
+	G_bprint(2, "%s:%s%s%s%s%s%s%s%s\n", redtext("   Shots"),
+		(attacks_wep_lg  ? va(" %s:%d", redtext("lg") , attacks_wep_lg ) : ""),
+		(attacks_wep_rl  ? va(" %s:%d", redtext("rl") , attacks_wep_rl ) : ""),
+		(attacks_wep_gl  ? va(" %s:%d", redtext("gl") , attacks_wep_gl ) : ""),
+		(attacks_wep_sg  ? va(" %s:%d", redtext("sg") , attacks_wep_sg ) : ""),
+		(attacks_wep_ssg ? va(" %s:%d", redtext("ssg"), attacks_wep_ssg) : ""),
+		(attacks_wep_sng ? va(" %s:%d", redtext("sng"), attacks_wep_sng) : ""),
+		(attacks_wep_ng  ? va(" %s:%d", redtext("ng") , attacks_wep_ng ) : ""),
+		(attacks_wep_axe ? va(" %s:%d", redtext("axe"), attacks_wep_axe) : "")
+	);
 
 	// rockets detail
 	if (! lgc_enabled()) {
@@ -581,13 +625,24 @@ void OnePlayerStats(gedict_t *p, int tp)
 	// damage
 	if ( isTeam() && deathmatch == 1 )
 	{
-		G_bprint(2, "%s: %s:%.0f %s:%.0f %s:%.0f %s:%.0f %s:%.0f %s:%.0f\n", redtext("  Damage"),
-			redtext("Tkn"), dmg_t, redtext("Gvn"), dmg_g, redtext("EWep"), dmg_eweapon, redtext("Tm"), dmg_team, redtext("Self"), dmg_self, redtext("ToDie"), dmg_td == -1 ? 99999 : dmg_td);
+		G_bprint(2, "%s: %s:%.0f %s:%.0f %s:%.2f %s:%.0f %s:%.0f %s:%.0f %s:%.0f\n", redtext("  Damage"),
+			redtext("Tkn"), dmg_t,
+			redtext("Gvn"), dmg_g,
+			redtext("Ratio"), dmg_ratio,
+			redtext("EWep"), dmg_eweapon,
+			redtext("Team"), dmg_team,
+			redtext("Self"), dmg_self,
+			redtext("ToDie"), dmg_td == -1 ? 99999 : dmg_td);
 	}
 	else
 	{
-		G_bprint(2, "%s: %s:%.0f %s:%.0f %s:%.0f %s:%.0f %s:%.0f\n", redtext("  Damage"),
-			redtext("Tkn"), dmg_t, redtext("Gvn"), dmg_g, redtext("Tm"), dmg_team, redtext("Self"), dmg_self, redtext("ToDie"), dmg_td == -1 ? 99999 : dmg_td);
+		G_bprint(2, "%s: %s:%.0f %s:%.0f %s:%.2f %s:%.0f %s:%.0f %s:%.0f\n", redtext("  Damage"),
+			redtext("Tkn"), dmg_t,
+			redtext("Gvn"), dmg_g,
+			redtext("Ratio"), dmg_ratio,
+			redtext("Team"), dmg_team,
+			redtext("Self"), dmg_self,
+			redtext("ToDie"), dmg_td == -1 ? 99999 : dmg_td);
 	}
 
 	// times
@@ -665,6 +720,20 @@ void OnePlayerStats(gedict_t *p, int tp)
 	maxrlkills = max(p->ps.wpn[wpRL].ekills, maxrlkills);
 	maxsgeffi  = max(e_sg, maxsgeffi);
 	maxlastra  = max(p->ps.last_ra_time, maxlastra);
+
+	seen_zero_deaths              = max(seen_zero_deaths, (p->deaths == 0) ? 1 : 0);
+	seen_discharge_kills          = max(seen_discharge_kills, p->ps.discharge_kills);
+	seen_discharge_survivals      = max(seen_discharge_survivals, p->ps.discharge_survivals);
+	seen_quad_deaths_to_discharge = max(seen_quad_deaths_to_discharge, p->ps.quad_deaths_to_discharge);
+	seen_killed_team_ring         = max(seen_killed_team_ring, p->ps.killed_team_ring);
+	seen_drowned_deaths           = max(seen_drowned_deaths, p->ps.drowned_deaths);
+	seen_squish_kills             = max(seen_squish_kills, p->ps.squish_kills);
+	seen_stomp_kills              = max(seen_stomp_kills, p->ps.stomp_kills);
+	seen_telefrag_deaths          = max(seen_telefrag_deaths, p->ps.telefrag_deaths);
+	seen_telefrag_kills           = max(seen_telefrag_kills, p->ps.telefrag_kills);
+	seen_axe_kills                = max(seen_axe_kills, p->ps.axe_kills);
+	seen_multiple_megas           = max(seen_multiple_megas, p->ps.multiple_megas);
+	seen_all_powerups             = max(seen_all_powerups, (quad > 0 && ring > 0 && pent > 0));
 }
 
 // Players statistics printout here
@@ -685,7 +754,8 @@ void PlayersStats(void)
 	maxfrags = -999999;
 
 	maxeffi = maxfriend = maxdeaths = maxcaps = maxdefends = maxsgeffi = maxlastra = 0;
-	maxspree = maxspree_q = maxdmgtd = maxdmgg = maxrlkills = 0;
+	maxspree = maxspree_q = maxdmgtd = maxdmgg = maxrlkills = 0;	
+	seen_zero_deaths = seen_discharge_kills = seen_discharge_survivals = seen_quad_deaths_to_discharge = seen_drowned_deaths = seen_squish_kills = seen_stomp_kills = seen_telefrag_deaths = seen_telefrag_kills = seen_axe_kills = seen_multiple_megas = 0;
 
 	tp = isTeam() || isCTF();
 
@@ -959,30 +1029,166 @@ void TopStats(void)
 			}
 		}
 	}
+}
 
-	if ( cvar("k_fun_stats") )
+void FunStats(void)
+{
+	if (!cvar("k_fun_stats"))
+		return;
+
+	G_bprint(2, "\n");
+	G_bprint(2, "\235\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\237\n");
+	G_bprint(2, "%s:\n", redtext("Awards"));
+	G_bprint(2, "\235\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\237\n");
+
+	gedict_t* p;
+	float f1;
+	int from;
+
+#define OUTPUT_SIMPLE_FUN_STAT(title, field)                                  \
+	{                                                                         \
+		G_bprint(2, title);                                                   \
+		from = f1 = 0;                                                        \
+		for (p = find_plrghst(world, &from); p; p = find_plrghst(p, &from)) { \
+			if ( (field) > 0) {                                               \
+				G_bprint(2, "%s%s%s\n", (f1 ? "                " : ""),       \
+						( isghost( p ) ? "\203" : "" ), getname( p ));        \
+				f1 = 1;                                                       \
+			}                                                                 \
+		}                                                                     \
+	}
+
+	if (seen_discharge_kills)
+		OUTPUT_SIMPLE_FUN_STAT("  Zeus Powered: ", p->ps.discharge_kills);
+	if (seen_discharge_survivals)
+		OUTPUT_SIMPLE_FUN_STAT("Superconductor: ", p->ps.discharge_survivals);
+	if (seen_quad_deaths_to_discharge)
+		OUTPUT_SIMPLE_FUN_STAT("         Dunce: ", p->ps.quad_deaths_to_discharge)
+	if (seen_killed_team_ring)
+		OUTPUT_SIMPLE_FUN_STAT("       Halfwit: ", p->ps.killed_team_ring)
+	if (seen_drowned_deaths)
+		OUTPUT_SIMPLE_FUN_STAT("   Bad Swimmer: ", p->ps.drowned_deaths);
+	if (seen_squish_kills)
+		OUTPUT_SIMPLE_FUN_STAT("  Bone Crusher: ", p->ps.squish_kills);
+	if (seen_stomp_kills)
+		OUTPUT_SIMPLE_FUN_STAT("   Human Anvil: ", p->ps.stomp_kills);
+	if (seen_telefrag_deaths)
+		OUTPUT_SIMPLE_FUN_STAT("Bad Place Bad Time: ", p->ps.telefrag_deaths);
+	if (seen_telefrag_kills)
+		OUTPUT_SIMPLE_FUN_STAT(" Expert Teleporter: ", p->ps.telefrag_kills);
+	if (seen_axe_kills)
+		OUTPUT_SIMPLE_FUN_STAT("   Grim Reaper: ", p->ps.axe_kills);
+	if (seen_multiple_megas)
+		OUTPUT_SIMPLE_FUN_STAT(" Fitness Freak: ", p->ps.multiple_megas)
+
+	if (seen_zero_deaths)
 	{
-		G_bprint(2, "\n");
-
-		if ( maxlastra && deathmatch != 1 )
+		float minimum_time_for_flawless_victory = (5 * 60) - 1; // ~ 5minutes
+		float game_duration = g_globalvars.time - match_start_time;
+		if (game_duration >= minimum_time_for_flawless_victory)
 		{
-			G_bprint( 2, "    Last RA: ");
+			G_bprint(2, "Flawless Victory: ");
 			from = f1 = 0;
-			p = find_plrghst( world, &from );
-			float time_remaining = match_end_time - maxlastra;
-			while( p ) {
-				if ( p->ps.last_ra_time == maxlastra ) {
-					G_bprint(2, "%s%s%s \220%1.2fs remaining\221\n", (f1 ? "             " : ""),
-							( isghost( p ) ? "\203" : "" ), getname( p ), time_remaining );
+			for (p = find_plrghst(world, &from); p; p = find_plrghst(p, &from)) {
+				if ( p->deaths == 0 ) {
+					const char* prefix = f1 ? "                  " : "";
+					G_bprint(2, "%s%s%s\n", prefix, ( isghost(p) ? "\203" : "" ), getname(p));
 					f1 = 1;
 				}
-				p = find_plrghst( p, &from );
 			}
 		}
 	}
 
-	G_bprint(2, "\n\235\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236"
-		"\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\237\n");
+	const float minimum_marksman_effi = 55.0f;
+	if (maxsgeffi > minimum_marksman_effi && deathmatch == 1)
+	{
+		G_bprint(2, "      Marksman: ");
+		from = f1 = 0;
+		for (p = find_plrghst(world, &from); p; p = find_plrghst(p, &from)) {
+			float h_sg = p->ps.wpn[wpSG].hits;
+			float a_sg = p->ps.wpn[wpSG].attacks;
+			float e_sg = 100.0 * h_sg  / max(1, a_sg);
+			if (e_sg > minimum_marksman_effi) {
+				const char* prefix = f1 ? "                " : "";
+				G_bprint(2, "%s%s%s\n", prefix, ( isghost(p) ? "\203" : "" ), getname(p));
+				f1 = 1;
+			}
+		}
+	}
+
+	// FIXME: This actually have been all powerups at the same time.
+	// if (seen_all_powerups)
+	// {
+	// 	G_bprint(2, "  Godlike: ");
+	// 	from = f1 = 0;
+	// 	for (p = find_plrghst(world, &from); p; p = find_plrghst(p, &from)) {
+	// 		int quad = p->ps.itm[itQUAD].tooks;
+	// 		int pent = p->ps.itm[itPENT].tooks;
+	// 		int ring = p->ps.itm[itRING].tooks;
+	// 		if ( (quad > 0 && ring > 0 && pent > 0) ) {
+	// 			const char* prefix = f1 ? "           " : "";
+	// 			G_bprint(2, "%s%s%s\n", prefix, ( isghost(p) ? "\203" : "" ), getname(p));
+	// 			f1 = 1;
+	// 		}
+	// 	}
+	// }
+
+	// All quads went to one player.
+	{
+		gedict_t* player_that_took_all_quads = NULL;
+		from = 0;
+		for (p = find_plrghst(world, &from); p; p = find_plrghst(p, &from)) {
+			if (p->ps.itm[itQUAD].tooks > 0) {
+				if (player_that_took_all_quads) {
+					player_that_took_all_quads = NULL;
+					break;
+				}
+				player_that_took_all_quads = p;
+			}
+		}
+		if (player_that_took_all_quads)
+			G_bprint(2, "  Tyrant: %s%s", ( isghost(player_that_took_all_quads) ? "\203" : "" ), getname(player_that_took_all_quads));
+	}
+
+	if (maxlastra && deathmatch != 1)
+	{
+		float time_remaining = match_end_time - maxlastra;
+		if (time_remaining <= 20.0)
+		{
+			G_bprint(2, "  Last RA: ");
+			from = f1 = 0;
+			float time_remaining = match_end_time - maxlastra;
+			for (p = find_plrghst(world, &from); p; p = find_plrghst(p, &from)) {
+				if ( p->ps.last_ra_time == maxlastra ) {
+					const char* prefix = f1 ? "           " : "";
+					if (time_remaining < 1)
+						G_bprint(2, "%s%s%s \220%1.2f remaining\221\n", prefix, ( isghost(p) ? "\203" : "" ), getname(p), time_remaining );
+					else if (time_remaining < 10)
+						G_bprint(2, "%s%s%s \220%1.2f remaining\221\n", prefix, ( isghost(p) ? "\203" : "" ), getname(p), time_remaining );
+					else
+						G_bprint(2, "%s%s%s \220%1.0f remaining\221\n", prefix, ( isghost(p) ? "\203" : "" ), getname(p), time_remaining );
+					f1 = 1;
+				}
+			}
+		}
+	}
+
+	// Player awards.
+	// FIXME: "Shooting Blanks" - super low sg effi?
+	// FIXME: "Banshee" - 20 kills in one minute?
+	// FIXME: "Battlecruiser" - Give >2000+ dmg in one minute?
+	// FIXME: "Cookie Monster" - Don't save packs for the team.
+	// FIXME: "Redemption" - Drop weapon pack but pick up your own pack.
+	// FIXME: "Lottery Winner" - Drop weapon pack but immediately get a weapon in 1s.
+	// FIXME: "Impotent" => pent without a weapon
+	// FIXME: "Carrier" => team wins and individual team member has sufficiently greater score?
+
+	// Team Awards
+	// FIXME: Team Wins by > 200 => Blowout
+	// FIXME: Team Wins, No Kills in last 2 minutes = Filibuster
+	// FIXME: Team Plays with >50 average ping advantage = Ping Privilege
+
+	G_bprint(2, "\n\235\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\236\237\n");
 }
 
 
@@ -1314,6 +1520,8 @@ void MatchEndStats(void)
 
 		if (isTeam() || isCTF())
 			TeamsStats(); // print basic info like frags for each team
+
+		FunStats();
 
 		if ((p = find(world, FOFCLSN, "ghost"))) // show legend :)
 			G_bprint(2, "\n\203 - %s player\n\n", redtext("disconnected"));

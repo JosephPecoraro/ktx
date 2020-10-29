@@ -292,6 +292,9 @@ void health_touch()
 
 		other->ps.itm[itHEALTH_100].tooks++;
 
+		if ( other->s.v.health >= 201 )
+			other->ps.multiple_megas++;
+
 		mi_print(other, IT_SUPERHEALTH, va("%s got Megahealth", getname(other)));
 	} else
 	{

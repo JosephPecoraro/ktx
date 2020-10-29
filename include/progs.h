@@ -180,6 +180,20 @@ typedef struct player_stats_s {
 	int ra_spawns; // number of ra spawns
 	float last_ra_time; // last time ra was taken
 
+	// fun stats
+	int discharge_kills; // number of discharge kills (only enemies)
+	int discharge_survivals; // number of discharge survivals (any discharge, self, team, pent)
+	int quad_deaths_to_discharge; // number of discharge deaths while holding quad
+	int killed_team_ring; // number of times killed a teammate that had ring
+	int drowned_deaths; // number of drowned deaths
+	int squish_deaths; // number of squish deaths
+	int squish_kills; // number of squish kills (only enemies)
+	int stomp_kills; // number of stomp kills (only enemies)
+	int telefrag_deaths; // number of squish deaths
+	int telefrag_kills; // number of squish kills (only enemies)
+	int axe_kills; // number of axe kills (only enemies)
+	int multiple_megas; // number of times health went above 200 with a mega pickup
+
 	// rocket arena
 	int wins;	//number of wins they have
 	int loses;	//number of loses they have

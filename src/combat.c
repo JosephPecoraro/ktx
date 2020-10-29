@@ -426,6 +426,7 @@ void T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker, float
 
 	attackerteam = getteam( attacker );
 	targteam = getteam( targ );
+	qbool team_dmg = tp_num() && streq(attackerteam, targteam);
 
 	if ( (int)cvar("k_midair") )
 		midair = true;
@@ -518,7 +519,7 @@ void T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker, float
 		 || dtRL   == targ->deathtype
 		 || dtLG_BEAM     == targ->deathtype
 		 || dtLG_DIS      == targ->deathtype
-		 || dtLG_DIS_SELF == targ->deathtype // even that impossible
+		 || dtLG_DIS_SELF == targ->deathtype // even though impossible
 	   ) {
 		damage *= 0.01f * hdp;
 	}
@@ -889,7 +890,7 @@ void T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker, float
 		{
 			int items = targ->s.v.items;
 
-			if ( tp_num() && streq(attackerteam, targteam) )
+			if ( team_dmg )
 			{
 				attacker->ps.dmg_team += dmg_dealt;
 				attacker->ps.wpn[weapon].tdamage += dmg_dealt;
@@ -935,6 +936,104 @@ void T_Damage( gedict_t * targ, gedict_t * inflictor, gedict_t * attacker, float
 
 				if ( dtGL == targ->deathtype )
 					attacker->ps.wpn[wpGL].vhits++;
+			}
+		}
+	}
+
+	// fun stats
+	if ( cvar("k_fun_stats") && targ->ct == ctPlayer )
+	{
+		if ( attacker == targ )
+		{
+			if ( dtLG_DIS == targ->deathtype || dtLG_DIS_SELF == targ->deathtype )
+			{
+				if ( !ISDEAD( targ ) )
+				{
+					G_cprint("[award] %s survived a self discharge\n", targ->netname);
+					targ->ps.discharge_survivals += 1;
+				}
+			}
+		}
+		else
+		{
+			int items = targ->s.v.items;
+			if ( ISDEAD( targ ) && attacker != targ && team_dmg && (items & IT_INVISIBILITY) )
+			{
+				targ->ps.killed_team_ring += 1;
+			}
+
+			if ( dtWATER_DMG == targ->deathtype )
+			{
+				if ( ISDEAD( targ ) )
+				{
+					G_cprint("[award] %s drowned\n", targ->netname);
+					targ->ps.drowned_deaths += 1;
+				}
+			}
+			else if ( dtSQUISH == targ->deathtype )
+			{
+				if ( ISDEAD( targ ) && !team_dmg )
+				{
+					targ->ps.squish_deaths += 1;
+
+					if ( attacker->ct == ctPlayer && !team_dmg )
+					{
+						G_cprint("[award] %s got a squish kill on %s\n", attacker->netname, targ->netname);
+						attacker->ps.squish_kills += 1;
+					}
+				}
+			}
+			else if ( dtSTOMP == targ->deathtype )
+			{
+				if ( ISDEAD( targ ) )
+				{
+					if ( attacker->ct == ctPlayer && !team_dmg )
+					{
+						G_cprint("[award] %s got a stomp kill on %s\n", attacker->netname, targ->netname);
+						attacker->ps.stomp_kills += 1;
+					}
+				}
+			}
+			else if ( TELEDEATH( targ ) )
+			{
+				G_cprint("[award] %s got telefragged\n", targ->netname);
+				targ->ps.telefrag_deaths += 1;
+
+				if ( attacker->ct == ctPlayer && !team_dmg )
+				{
+					G_cprint("[award] %s telefragged %s\n", attacker->netname, targ->netname);
+					attacker->ps.telefrag_kills += 1;
+				}
+			}
+			else if ( attacker->ct == ctPlayer )
+			{
+				if ( dtLG_DIS == targ->deathtype )
+				{
+					if ( !ISDEAD( targ ) )
+					{
+						G_cprint("[award] %s survived a discharge\n", targ->netname);
+						targ->ps.discharge_survivals += 1;
+					}
+					else if ( !team_dmg )
+					{
+						G_cprint("[award] %s got a discharge kill on %s\n", attacker->netname, targ->netname);
+						attacker->ps.discharge_kills += 1;
+					}
+
+					if ( ISDEAD( targ ) && (items & IT_QUAD) && attacker != targ )
+					{
+						G_cprint("[award] %s died to discharge with quad\n", targ->netname);
+						targ->ps.quad_deaths_to_discharge += 1;
+					}
+				}
+				else if ( dtAXE == targ->deathtype )
+				{
+					if ( ISDEAD( targ ) && !team_dmg )
+					{
+						G_cprint("[award] %s got an axe kill on %s\n", attacker->netname, targ->netname);
+						attacker->ps.axe_kills += 1;
+					}
+				}
 			}
 		}
 	}
